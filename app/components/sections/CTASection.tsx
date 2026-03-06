@@ -1,15 +1,12 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import dynamic from 'next/dynamic';
-
-const ParticleField = dynamic(() => import('../3d/ParticleField'), { ssr: false });
 
 export default function CTASection() {
   return (
     <section id="cta" className="relative py-24 md:py-40 px-6 overflow-hidden">
-      {/* Particle background */}
-      <ParticleField />
+      {/* Ambient dots background */}
+      <div className="absolute inset-0 z-0" style={{ backgroundImage: 'radial-gradient(circle, rgba(0,212,255,0.08) 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
 
       {/* Radial glow */}
       <div

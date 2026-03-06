@@ -2,13 +2,15 @@
 
 import { useState } from 'react';
 import {
-  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
+  BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { motion } from 'framer-motion';
 import {
   patientStatusData, treatmentTypeData, revenueSummaryData,
   topDoctors, summaryStats, departmentWorkload, recentActivity,
+  doctorWorkload, hourlyPatientLoad, workloadOverTime,
+  monthlyResolutionTrends, avgHandlingTime, staffUtilization, bedTurnover,
 } from './data';
 
 /* ── Icons ── */
@@ -28,7 +30,7 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
         <div key={i} className="flex items-center gap-2 text-xs">
           <span className="w-2 h-2 rounded-full" style={{ background: p.color }} />
           <span className="text-gray-500">{p.name}:</span>
-          <span className="font-semibold text-gray-700">{p.value.toLocaleString()}</span>
+          <span className="font-semibold text-gray-700">{typeof p.value === 'number' ? p.value.toLocaleString() : p.value}</span>
         </div>
       ))}
     </div>
@@ -37,15 +39,14 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 
 export default function DashboardPage() {
   const [patientFilter, setPatientFilter] = useState('Monthly');
-  const [treatmentFilter, setTreatmentFilter] = useState('Weekly');
-  const [revenueFilter, setRevenueFilter] = useState('2024');
+  const [workloadView, setWorkloadView] = useState('Department');
 
   return (
     <>
       <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-lg border-b border-gray-100 px-6 py-3 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-800">Analytics Dashboard</h1>
-          <p className="text-xs text-gray-400">Hospital Management Overview</p>
+          <p className="text-xs text-gray-400">Hospital Management — Workload Distribution & Resolution Trends</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50 border border-gray-100">
@@ -67,7 +68,7 @@ export default function DashboardPage() {
       </header>
 
       <div className="p-6 space-y-6">
-        {/* Stats */}
+        {/* ── Summary Stats ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {summaryStats.map((stat, i) => (
             <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: i * 0.1 }}
@@ -82,13 +83,230 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Patient Status */}
+        {/* ══════════ WORKLOAD DISTRIBUTION SECTION ══════════ */}
+        <div className="border-l-4 border-purple-500 pl-4">
+          <h2 className="text-lg font-bold text-gray-800">Workload Distribution</h2>
+          <p className="text-xs text-gray-400">Staff & department workload analysis for operational insights</p>
+        </div>
+
+        {/* Doctor Workload + Dept Workload */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Doctor Workload Utilization */}
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Doctor Workload Utilization</h3>
+            <div className="space-y-3">
+              {doctorWorkload.map((doc, i) => (
+                <motion.div key={i} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }} className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0" style={{ background: doc.utilization >= 90 ? '#EF4444' : doc.utilization >= 75 ? '#F59E0B' : '#10B981' }}>
+                    {doc.name.split(' ')[1][0]}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold text-gray-700 truncate">{doc.name}</p>
+                      <span className="text-[10px] text-gray-400">{doc.activeCases}/{doc.maxCapacity} cases</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
+                        <motion.div initial={{ width: 0 }} animate={{ width: `${doc.utilization}%` }} transition={{ duration: 1, delay: i * 0.1 }}
+                          className="h-full rounded-full" style={{ background: doc.utilization >= 90 ? '#EF4444' : doc.utilization >= 75 ? '#F59E0B' : '#10B981' }} />
+                      </div>
+                      <span className={`text-[10px] font-bold ${doc.utilization >= 90 ? 'text-red-500' : doc.utilization >= 75 ? 'text-amber-500' : 'text-emerald-500'}`}>{doc.utilization}%</span>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+
+          {/* Department Workload */}
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <h3 className="text-lg font-bold text-gray-800 mb-5">Department Workload</h3>
+            <div className="space-y-4">
+              {departmentWorkload.map((dept, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <span className="text-xs text-gray-500 w-24 truncate">{dept.name}</span>
+                  <div className="flex-1 h-3 rounded-full bg-gray-100 overflow-hidden">
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${dept.workload}%` }} transition={{ duration: 1, delay: i * 0.1 }}
+                      className="h-full rounded-full" style={{ background: `linear-gradient(90deg, ${dept.color}, ${dept.color}88)` }} />
+                  </div>
+                  <span className={`text-xs font-bold w-12 text-right ${dept.workload >= 85 ? 'text-red-500' : 'text-gray-600'}`}>{dept.workload}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Hourly Patient Load */}
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+          <h3 className="text-lg font-bold text-gray-800 mb-1">Hourly Patient Load Distribution</h3>
+          <p className="text-xs text-gray-400 mb-4">Peak hours and operational load by patient type</p>
+          <div className="flex items-center gap-4 mb-3">
+            {[{ label: 'Emergency', color: '#EF4444' }, { label: 'Outpatient', color: '#7C3AED' }, { label: 'Admissions', color: '#3B82F6' }].map(l => (
+              <div key={l.label} className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: l.color }} /><span className="text-[10px] text-gray-400">{l.label}</span></div>
+            ))}
+          </div>
+          <ResponsiveContainer width="100%" height={280}>
+            <AreaChart data={hourlyPatientLoad}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+              <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
+              <Tooltip content={<CustomTooltip />} />
+              <Area type="monotone" dataKey="outpatient" name="Outpatient" stroke="#7C3AED" fill="#7C3AED" fillOpacity={0.15} strokeWidth={2} />
+              <Area type="monotone" dataKey="emergency" name="Emergency" stroke="#EF4444" fill="#EF4444" fillOpacity={0.1} strokeWidth={2} />
+              <Area type="monotone" dataKey="admissions" name="Admissions" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.1} strokeWidth={2} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Workload Over Time + Staff Utilization */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <h3 className="text-lg font-bold text-gray-800 mb-1">Department Workload Trends (%)</h3>
+            <p className="text-xs text-gray-400 mb-4">Monthly capacity utilization by department</p>
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={workloadOverTime}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} domain={[50, 100]} />
+                <Tooltip content={<CustomTooltip />} />
+                <Line type="monotone" dataKey="emergency" name="Emergency" stroke="#EF4444" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="icu" name="ICU" stroke="#7C3AED" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="cardiology" name="Cardiology" stroke="#EC4899" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="orthopedics" name="Orthopedics" stroke="#F59E0B" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="neurology" name="Neurology" stroke="#3B82F6" strokeWidth={2} dot={{ r: 3 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <h3 className="text-lg font-bold text-gray-800 mb-1">Staff Utilization Breakdown</h3>
+            <p className="text-xs text-gray-400 mb-4">Time allocation: Clinical vs Admin vs Idle</p>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={staffUtilization} layout="vertical" barSize={14}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+                <XAxis type="number" domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(v: any) => `${v}%`} />
+                <YAxis type="category" dataKey="role" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} width={85} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="utilized" name="Clinical" stackId="a" fill="#7C3AED" />
+                <Bar dataKey="admin" name="Admin" stackId="a" fill="#A78BFA" />
+                <Bar dataKey="idle" name="Idle" stackId="a" fill="#E2E8F0" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* ══════════ RESOLUTION TRENDS SECTION ══════════ */}
+        <div className="border-l-4 border-emerald-500 pl-4">
+          <h2 className="text-lg font-bold text-gray-800">Resolution Trends</h2>
+          <p className="text-xs text-gray-400">Case resolution, handling time, and operational efficiency</p>
+        </div>
+
+        {/* Monthly Resolution + Avg Resolution Time */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <h3 className="text-lg font-bold text-gray-800 mb-1">Monthly Resolution Trends</h3>
+            <p className="text-xs text-gray-400 mb-4">Cases resolved, pending, and escalated</p>
+            <div className="flex items-center gap-4 mb-3">
+              {[{ label: 'Resolved', color: '#10B981' }, { label: 'Pending', color: '#F59E0B' }, { label: 'Escalated', color: '#EF4444' }].map(l => (
+                <div key={l.label} className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: l.color }} /><span className="text-[10px] text-gray-400">{l.label}</span></div>
+              ))}
+            </div>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={monthlyResolutionTrends} barGap={2}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="resolved" name="Resolved" fill="#10B981" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="pending" name="Pending" fill="#F59E0B" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="escalated" name="Escalated" fill="#EF4444" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <h3 className="text-lg font-bold text-gray-800 mb-1">Average Resolution Time</h3>
+            <p className="text-xs text-gray-400 mb-4">Hours to resolve cases (lower is better)</p>
+            <ResponsiveContainer width="100%" height={260}>
+              <AreaChart data={monthlyResolutionTrends}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(v: any) => `${v}h`} />
+                <Tooltip content={<CustomTooltip />} />
+                <Area type="monotone" dataKey="avgResolutionHrs" name="Avg Hours" stroke="#7C3AED" fill="#7C3AED" fillOpacity={0.12} strokeWidth={2.5} dot={{ r: 4, fill: '#7C3AED' }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Avg Handling Time by Department */}
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+          <h3 className="text-lg font-bold text-gray-800 mb-1">Average Handling Time by Department</h3>
+          <p className="text-xs text-gray-400 mb-4">Wait → Treatment → Discharge pipeline (minutes)</p>
+          <div className="flex items-center gap-4 mb-3">
+            {[{ label: 'Avg Wait', color: '#EF4444' }, { label: 'Avg Treatment', color: '#7C3AED' }, { label: 'Avg Discharge', color: '#3B82F6' }].map(l => (
+              <div key={l.label} className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: l.color }} /><span className="text-[10px] text-gray-400">{l.label}</span></div>
+            ))}
+          </div>
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={avgHandlingTime} barGap={4}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+              <XAxis dataKey="department" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(v: any) => `${v}m`} />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar dataKey="avgWaitMin" name="Avg Wait" fill="#EF4444" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="avgTreatmentMin" name="Avg Treatment" fill="#7C3AED" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="avgDischargeMin" name="Avg Discharge" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Bed Turnover + Recent Activity */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <h3 className="text-lg font-bold text-gray-800 mb-1">Bed Turnover Rate</h3>
+            <p className="text-xs text-gray-400 mb-4">Patients per bed per month (higher = more efficient)</p>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={bedTurnover}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Line type="monotone" dataKey="generalWard" name="General Ward" stroke="#7C3AED" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="icu" name="ICU" stroke="#EF4444" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="private" name="Private" stroke="#10B981" strokeWidth={2} dot={{ r: 3 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-800">Recent Activity</h3>
+              <button className="text-xs text-pink-500 font-medium hover:text-pink-600">View All</button>
+            </div>
+            {recentActivity.map((item, i) => {
+              const typeColors: Record<string, string> = { admit: '#FF2D55', surgery: '#7C3AED', discharge: '#10B981', lab: '#3B82F6', appointment: '#F59E0B', prescription: '#EC4899' };
+              return (
+                <div key={i} className="flex items-center gap-3 py-2.5 border-b border-gray-50 last:border-0">
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: typeColors[item.type] || '#999' }} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-gray-700 truncate">{item.action}</p>
+                    <p className="text-[10px] text-gray-400">{item.department}</p>
+                  </div>
+                  <span className="text-[10px] text-gray-400 flex-shrink-0">{item.time}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── Patient Status (existing) ── */}
         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h3 className="text-lg font-bold text-gray-800">Patient Status</h3>
               <div className="flex items-center gap-4 mt-2">
-                {[{ label: 'Patient In', color: '#7C3AED' }, { label: 'Patient Out', color: '#A78BFA' }, { label: 'Discharged', color: '#EC4899' }, { label: 'Emergency', color: '#F9A8D4' }].map((l) => (
+                {[{ label: 'Patient In', color: '#7C3AED' }, { label: 'Patient Out', color: '#A78BFA' }, { label: 'Discharged', color: '#EC4899' }, { label: 'Emergency', color: '#F9A8D4' }].map(l => (
                   <div key={l.label} className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: l.color }} /><span className="text-[10px] text-gray-400">{l.label}</span></div>
                 ))}
               </div>
@@ -114,79 +332,31 @@ export default function DashboardPage() {
         {/* Treatment + Revenue */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-800">Treatment Type</h3>
-              <select value={treatmentFilter} onChange={(e) => setTreatmentFilter(e.target.value)} className="text-xs px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-600 cursor-pointer outline-none"><option>Weekly</option><option>Monthly</option></select>
-            </div>
-            <div className="flex items-center gap-4 mb-4">
-              {[{ label: 'General', color: '#7C3AED' }, { label: 'Surgery', color: '#EC4899' }, { label: 'ICU', color: '#F9A8D4' }].map((l) => (
-                <div key={l.label} className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: l.color }} /><span className="text-[10px] text-gray-400">{l.label}</span></div>
-              ))}
-            </div>
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Treatment Type</h3>
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={treatmentTypeData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
                 <Tooltip content={<CustomTooltip />} />
-                <Line type="monotone" dataKey="general" name="General" stroke="#7C3AED" strokeWidth={2.5} dot={{ r: 4, fill: '#7C3AED' }} />
-                <Line type="monotone" dataKey="surgery" name="Surgery" stroke="#EC4899" strokeWidth={2.5} dot={{ r: 4, fill: '#EC4899' }} />
-                <Line type="monotone" dataKey="icu" name="ICU" stroke="#F9A8D4" strokeWidth={2.5} dot={{ r: 4, fill: '#F9A8D4' }} />
+                <Line type="monotone" dataKey="general" name="General" stroke="#7C3AED" strokeWidth={2.5} dot={{ r: 4 }} />
+                <Line type="monotone" dataKey="surgery" name="Surgery" stroke="#EC4899" strokeWidth={2.5} dot={{ r: 4 }} />
+                <Line type="monotone" dataKey="icu" name="ICU" stroke="#F9A8D4" strokeWidth={2.5} dot={{ r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
           <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-800">Revenue Summary</h3>
-              <select value={revenueFilter} onChange={(e) => setRevenueFilter(e.target.value)} className="text-xs px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-600 cursor-pointer outline-none"><option>2024</option><option>2023</option></select>
-            </div>
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Revenue Summary</h3>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={revenueSummaryData} barGap={4}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(v: any) => `$${(v / 1000).toFixed(0)}k`} />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,0,0,0.02)' }} />
                 <Bar dataKey="running" name="Running" fill="#7C3AED" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="cycling" name="Cycling" fill="#A78BFA" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Workload + Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-            <h3 className="text-lg font-bold text-gray-800 mb-5">Department Workload</h3>
-            <div className="space-y-4">
-              {departmentWorkload.map((dept, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <span className="text-xs text-gray-500 w-24 truncate">{dept.name}</span>
-                  <div className="flex-1 h-2.5 rounded-full bg-gray-100 overflow-hidden">
-                    <motion.div initial={{ width: 0 }} animate={{ width: `${dept.workload}%` }} transition={{ duration: 1, delay: i * 0.1 }} className="h-full rounded-full" style={{ background: dept.color }} />
-                  </div>
-                  <span className="text-xs font-semibold text-gray-600 w-10 text-right">{dept.workload}%</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-800">Recent Activity</h3>
-              <button className="text-xs text-pink-500 font-medium hover:text-pink-600">View All</button>
-            </div>
-            {recentActivity.map((item, i) => {
-              const typeColors: Record<string, string> = { admit: '#FF2D55', surgery: '#7C3AED', discharge: '#10B981', lab: '#3B82F6', appointment: '#F59E0B', prescription: '#EC4899' };
-              return (
-                <div key={i} className="flex items-center gap-3 py-2.5 border-b border-gray-50 last:border-0">
-                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: typeColors[item.type] || '#999' }} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-gray-700 truncate">{item.action}</p>
-                    <p className="text-[10px] text-gray-400">{item.department}</p>
-                  </div>
-                  <span className="text-[10px] text-gray-400 flex-shrink-0">{item.time}</span>
-                </div>
-              );
-            })}
           </div>
         </div>
 

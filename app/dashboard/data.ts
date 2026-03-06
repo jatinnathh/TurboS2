@@ -363,3 +363,110 @@ export const satisfactionScores = [
   { month: 'Jul', score: 4.3 }, { month: 'Aug', score: 4.5 }, { month: 'Sep', score: 4.4 },
   { month: 'Oct', score: 4.3 }, { month: 'Nov', score: 4.1 }, { month: 'Dec', score: 4.2 },
 ];
+
+// ══════════════════════════════════════════════════
+// WORKLOAD DISTRIBUTION & RESOLUTION TRENDS
+// (Core problem statement data)
+// ══════════════════════════════════════════════════
+
+// Doctor-level workload distribution
+export const doctorWorkload = [
+  { name: 'Dr. Westervelt', department: 'Orthopedics', activeCases: 18, maxCapacity: 22, consultations: 8, surgeries: 3, utilization: 82 },
+  { name: 'Dr. Levin', department: 'Neurology', activeCases: 14, maxCapacity: 18, consultations: 6, surgeries: 1, utilization: 78 },
+  { name: 'Dr. Bator', department: 'Cardiology', activeCases: 20, maxCapacity: 20, consultations: 10, surgeries: 4, utilization: 100 },
+  { name: 'Dr. Workman', department: 'Emergency', activeCases: 24, maxCapacity: 25, consultations: 15, surgeries: 0, utilization: 96 },
+  { name: 'Dr. Turner', department: 'Oncology', activeCases: 12, maxCapacity: 16, consultations: 5, surgeries: 2, utilization: 75 },
+  { name: 'Dr. Patel', department: 'Pediatrics', activeCases: 16, maxCapacity: 20, consultations: 12, surgeries: 0, utilization: 80 },
+  { name: 'Dr. Kim', department: 'ICU', activeCases: 22, maxCapacity: 24, consultations: 4, surgeries: 6, utilization: 92 },
+  { name: 'Dr. Hassan', department: 'Cardiology', activeCases: 15, maxCapacity: 20, consultations: 8, surgeries: 2, utilization: 75 },
+];
+
+// Hourly patient load (operational activity distribution)
+export const hourlyPatientLoad = [
+  { hour: '6AM', emergency: 8, outpatient: 2, admissions: 1 },
+  { hour: '7AM', emergency: 12, outpatient: 15, admissions: 4 },
+  { hour: '8AM', emergency: 18, outpatient: 45, admissions: 8 },
+  { hour: '9AM', emergency: 22, outpatient: 68, admissions: 12 },
+  { hour: '10AM', emergency: 25, outpatient: 72, admissions: 10 },
+  { hour: '11AM', emergency: 20, outpatient: 65, admissions: 7 },
+  { hour: '12PM', emergency: 15, outpatient: 42, admissions: 5 },
+  { hour: '1PM', emergency: 18, outpatient: 48, admissions: 6 },
+  { hour: '2PM', emergency: 22, outpatient: 55, admissions: 9 },
+  { hour: '3PM', emergency: 20, outpatient: 50, admissions: 8 },
+  { hour: '4PM', emergency: 24, outpatient: 38, admissions: 6 },
+  { hour: '5PM', emergency: 28, outpatient: 22, admissions: 4 },
+  { hour: '6PM', emergency: 30, outpatient: 10, admissions: 3 },
+  { hour: '7PM', emergency: 25, outpatient: 5, admissions: 2 },
+  { hour: '8PM', emergency: 18, outpatient: 3, admissions: 2 },
+  { hour: '9PM', emergency: 14, outpatient: 0, admissions: 1 },
+  { hour: '10PM', emergency: 10, outpatient: 0, admissions: 1 },
+];
+
+// Department workload over time (monthly trends)
+export const workloadOverTime = [
+  { month: 'Jan', emergency: 88, cardiology: 72, neurology: 60, orthopedics: 65, icu: 90 },
+  { month: 'Feb', emergency: 85, cardiology: 75, neurology: 58, orthopedics: 68, icu: 88 },
+  { month: 'Mar', emergency: 90, cardiology: 70, neurology: 62, orthopedics: 70, icu: 92 },
+  { month: 'Apr', emergency: 92, cardiology: 78, neurology: 65, orthopedics: 72, icu: 94 },
+  { month: 'May', emergency: 86, cardiology: 74, neurology: 63, orthopedics: 67, icu: 89 },
+  { month: 'Jun', emergency: 94, cardiology: 80, neurology: 68, orthopedics: 75, icu: 96 },
+  { month: 'Jul', emergency: 91, cardiology: 76, neurology: 64, orthopedics: 70, icu: 93 },
+  { month: 'Aug', emergency: 95, cardiology: 82, neurology: 70, orthopedics: 74, icu: 97 },
+  { month: 'Sep', emergency: 89, cardiology: 77, neurology: 66, orthopedics: 71, icu: 91 },
+  { month: 'Oct', emergency: 92, cardiology: 78, neurology: 65, orthopedics: 71, icu: 95 },
+  { month: 'Nov', emergency: 87, cardiology: 73, neurology: 61, orthopedics: 68, icu: 90 },
+  { month: 'Dec', emergency: 93, cardiology: 80, neurology: 67, orthopedics: 73, icu: 95 },
+];
+
+// Monthly resolution trends (expanded from weekly)
+export const monthlyResolutionTrends = [
+  { month: 'Jan', resolved: 580, pending: 95, escalated: 28, avgResolutionHrs: 18.5 },
+  { month: 'Feb', resolved: 540, pending: 110, escalated: 32, avgResolutionHrs: 20.2 },
+  { month: 'Mar', resolved: 620, pending: 85, escalated: 22, avgResolutionHrs: 16.8 },
+  { month: 'Apr', resolved: 600, pending: 90, escalated: 25, avgResolutionHrs: 17.5 },
+  { month: 'May', resolved: 650, pending: 78, escalated: 20, avgResolutionHrs: 15.2 },
+  { month: 'Jun', resolved: 580, pending: 105, escalated: 30, avgResolutionHrs: 19.8 },
+  { month: 'Jul', resolved: 640, pending: 82, escalated: 24, avgResolutionHrs: 16.0 },
+  { month: 'Aug', resolved: 690, pending: 70, escalated: 18, avgResolutionHrs: 14.5 },
+  { month: 'Sep', resolved: 660, pending: 88, escalated: 22, avgResolutionHrs: 15.8 },
+  { month: 'Oct', resolved: 620, pending: 92, escalated: 26, avgResolutionHrs: 17.2 },
+  { month: 'Nov', resolved: 570, pending: 100, escalated: 30, avgResolutionHrs: 19.0 },
+  { month: 'Dec', resolved: 610, pending: 95, escalated: 28, avgResolutionHrs: 18.0 },
+];
+
+// Average handling/wait time by department
+export const avgHandlingTime = [
+  { department: 'Emergency', avgWaitMin: 12, avgTreatmentMin: 45, avgDischargeMin: 90 },
+  { department: 'Cardiology', avgWaitMin: 18, avgTreatmentMin: 60, avgDischargeMin: 180 },
+  { department: 'Neurology', avgWaitMin: 22, avgTreatmentMin: 55, avgDischargeMin: 240 },
+  { department: 'Orthopedics', avgWaitMin: 15, avgTreatmentMin: 70, avgDischargeMin: 360 },
+  { department: 'Pediatrics', avgWaitMin: 10, avgTreatmentMin: 35, avgDischargeMin: 120 },
+  { department: 'Oncology', avgWaitMin: 25, avgTreatmentMin: 90, avgDischargeMin: 480 },
+  { department: 'ICU', avgWaitMin: 5, avgTreatmentMin: 120, avgDischargeMin: 720 },
+];
+
+// Staff utilization rates
+export const staffUtilization = [
+  { role: 'Doctors', utilized: 84, idle: 10, admin: 6 },
+  { role: 'Nurses', utilized: 78, idle: 12, admin: 10 },
+  { role: 'Surgeons', utilized: 72, idle: 18, admin: 10 },
+  { role: 'Lab Techs', utilized: 88, idle: 5, admin: 7 },
+  { role: 'Radiologists', utilized: 70, idle: 20, admin: 10 },
+  { role: 'Pharmacists', utilized: 82, idle: 8, admin: 10 },
+];
+
+// Bed turnover rate
+export const bedTurnover = [
+  { month: 'Jan', generalWard: 3.2, icu: 1.8, private: 2.5 },
+  { month: 'Feb', generalWard: 3.0, icu: 1.6, private: 2.3 },
+  { month: 'Mar', generalWard: 3.5, icu: 2.0, private: 2.8 },
+  { month: 'Apr', generalWard: 3.3, icu: 1.9, private: 2.6 },
+  { month: 'May', generalWard: 3.6, icu: 2.1, private: 2.9 },
+  { month: 'Jun', generalWard: 3.1, icu: 1.7, private: 2.4 },
+  { month: 'Jul', generalWard: 3.4, icu: 1.9, private: 2.7 },
+  { month: 'Aug', generalWard: 3.8, icu: 2.2, private: 3.0 },
+  { month: 'Sep', generalWard: 3.5, icu: 2.0, private: 2.8 },
+  { month: 'Oct', generalWard: 3.3, icu: 1.9, private: 2.6 },
+  { month: 'Nov', generalWard: 3.1, icu: 1.7, private: 2.4 },
+  { month: 'Dec', generalWard: 3.4, icu: 2.0, private: 2.7 },
+];

@@ -42,7 +42,7 @@ export default function PaymentsPage() {
               <AreaChart data={monthlyRevenue}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(v: any) => `$${(v / 1000).toFixed(0)}k`} />
                 <Tooltip />
                 <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#7C3AED" fill="#7C3AED" fillOpacity={0.15} strokeWidth={2} />
                 <Area type="monotone" dataKey="expenses" name="Expenses" stroke="#EC4899" fill="#EC4899" fillOpacity={0.1} strokeWidth={2} />
@@ -54,9 +54,9 @@ export default function PaymentsPage() {
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={revenueByDepartment} layout="vertical" barSize={14}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
-                <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(v: number) => `$${(v / 1000000).toFixed(1)}M`} />
+                <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(v: any) => `$${(v / 1000000).toFixed(1)}M`} />
                 <YAxis type="category" dataKey="department" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} width={85} />
-                <Tooltip formatter={(v: number) => [`$${v.toLocaleString()}`, 'Revenue']} />
+                <Tooltip formatter={(v: any) => [`$${Number(v).toLocaleString()}`, 'Revenue']} />
                 <Bar dataKey="revenue" fill="#7C3AED" radius={[0, 8, 8, 0]} />
               </BarChart>
             </ResponsiveContainer>

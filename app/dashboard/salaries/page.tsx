@@ -42,8 +42,8 @@ export default function SalariesPage() {
               <LineChart data={payrollMonthly}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(v: number) => `$${(v / 1000000).toFixed(1)}M`} />
-                <Tooltip formatter={(v: number) => [`$${v.toLocaleString()}`]} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(v: any) => `$${(v / 1000000).toFixed(1)}M`} />
+                <Tooltip formatter={(v: any) => [`$${Number(v).toLocaleString()}`]} />
                 <Line type="monotone" dataKey="totalPayroll" name="Base Payroll" stroke="#7C3AED" strokeWidth={2.5} dot={{ r: 4 }} />
                 <Line type="monotone" dataKey="bonuses" name="Bonuses" stroke="#10B981" strokeWidth={2} dot={{ r: 3 }} />
                 <Line type="monotone" dataKey="overtime" name="Overtime" stroke="#F59E0B" strokeWidth={2} dot={{ r: 3 }} />
@@ -55,9 +55,9 @@ export default function SalariesPage() {
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={salaryByRole} layout="vertical" barSize={14}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
-                <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
+                <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(v: any) => `$${(v / 1000).toFixed(0)}k`} />
                 <YAxis type="category" dataKey="role" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} width={110} />
-                <Tooltip formatter={(v: number) => [`$${v.toLocaleString()}`]} />
+                <Tooltip formatter={(v: any) => [`$${Number(v).toLocaleString()}`]} />
                 <Bar dataKey="avgSalary" name="Avg Salary" fill="#7C3AED" radius={[0, 8, 8, 0]} />
               </BarChart>
             </ResponsiveContainer>

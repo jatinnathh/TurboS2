@@ -57,7 +57,7 @@ export default function StaffPage() {
             <div className="flex items-center justify-center">
               <ResponsiveContainer width="100%" height={280}>
                 <PieChart>
-                  <Pie data={shiftDistribution} cx="50%" cy="50%" outerRadius={100} innerRadius={55} dataKey="count" nameKey="shift" label={({ shift, count }: { shift: string; count: number }) => `${shift.split(' ')[0]}: ${count}`}>
+                  <Pie data={shiftDistribution} cx="50%" cy="50%" outerRadius={100} innerRadius={55} dataKey="count" nameKey="shift" label={(props: any) => `${props.shift.split(' ')[0]}: ${props.count}`}>
                     {shiftDistribution.map((_, i) => (<Cell key={i} fill={COLORS[i % COLORS.length]} />))}
                   </Pie>
                   <Tooltip />

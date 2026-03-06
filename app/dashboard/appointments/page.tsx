@@ -61,7 +61,7 @@ export default function AppointmentsPage() {
             <h3 className="text-lg font-bold text-gray-800 mb-4">Appointments by Type</h3>
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>
-                <Pie data={appointmentsByType} cx="50%" cy="50%" outerRadius={100} innerRadius={50} dataKey="count" nameKey="type" label={({ type, count }: { type: string; count: number }) => `${type}: ${count}`}>
+                <Pie data={appointmentsByType} cx="50%" cy="50%" outerRadius={100} innerRadius={50} dataKey="count" nameKey="type" label={(props: any) => `${props.type}: ${props.count}`}>
                   {appointmentsByType.map((_, i) => (<Cell key={i} fill={COLORS[i % COLORS.length]} />))}
                 </Pie>
                 <Tooltip />
