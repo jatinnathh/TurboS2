@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer,
+  Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
 } from 'recharts';
 import { motion } from 'framer-motion';
 import {
@@ -12,6 +12,18 @@ import {
   doctorWorkload, hourlyPatientLoad, workloadOverTime,
   monthlyResolutionTrends, avgHandlingTime, staffUtilization, bedTurnover,
 } from './data';
+import AnalyticsToolbar from './AnalyticsToolbar';
+import {
+  aggregateByTimeRange, filterByDepartment, rankDoctors,
+  type TimeRange, type Department,
+} from './dataUtils';
+
+/* ── Palette ── */
+const DEPT_COLORS: Record<string, string> = {
+  Emergency: '#EF4444', Cardiology: '#EC4899', Neurology: '#3B82F6',
+  Orthopedics: '#F59E0B', Pediatrics: '#10B981', Oncology: '#8B5CF6', ICU: '#7C3AED',
+};
+const PIE_COLORS = ['#7C3AED', '#EC4899', '#3B82F6', '#F59E0B', '#10B981', '#EF4444', '#8B5CF6'];
 
 /* ── Icons ── */
 const icons: Record<string, React.ReactNode> = {
@@ -37,9 +49,85 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
   );
 }
 
+/* ── Mini section header component ── */
+function SectionHeader({ color, title, subtitle }: { color: string; title: string; subtitle: string }) {
+  return (
+    <div className={`border-l-4 pl-4`} style={{ borderColor: color }}>
+      <h2 className="text-lg font-bold text-gray-800">{title}</h2>
+      <p className="text-xs text-gray-400">{subtitle}</p>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
-  const [patientFilter, setPatientFilter] = useState('Monthly');
-  const [workloadView, setWorkloadView] = useState('Department');
+  // ── Global Controls ──
+  const [timeRange, setTimeRange] = useState<TimeRange>('Monthly');
+  const [department, setDepartment] = useState<Department>('All');
+  const [doctorRankOrder, setDoctorRankOrder] = useState<'top' | 'bottom'>('top');
+  const [patientFilter, setPatientFilter] = useState<TimeRange>('Monthly');
+
+  // ── Derived Data ──
+
+  // Doctor workload — filter by department, then rank
+  const filteredDoctors = useMemo(() => {
+    const filtered = department === 'All'
+      ? doctorWorkload
+      : doctorWorkload.filter(d => d.department.toLowerCase() === department.toLowerCase());
+    return rankDoctors(filtered, 'utilization', doctorRankOrder, 8);
+  }, [department, doctorRankOrder]);
+
+  // Department workload — filter by selected dept
+  const filteredDeptWorkload = useMemo(() => {
+    if (department === 'All') return departmentWorkload;
+    return departmentWorkload.filter(d => d.name.toLowerCase() === department.toLowerCase());
+  }, [department]);
+
+  // Hourly patient load — no time aggregation (hourly), but we keep it
+  // Workload over time — aggregate by time range
+  const workloadOverTimeAgg = useMemo(
+    () => aggregateByTimeRange(workloadOverTime, timeRange, 'month', 'avg'),
+    [timeRange],
+  );
+
+  // Resolution trends — aggregate by time range
+  const resolutionAgg = useMemo(
+    () => aggregateByTimeRange(monthlyResolutionTrends, timeRange, 'month'),
+    [timeRange],
+  );
+
+  // Resolution avg hours — aggregate by time range (average mode)
+  const resolutionAvgAgg = useMemo(
+    () => aggregateByTimeRange(monthlyResolutionTrends, timeRange, 'month', 'avg'),
+    [timeRange],
+  );
+
+  // Patient status — separate filter
+  const patientStatusAgg = useMemo(
+    () => aggregateByTimeRange(patientStatusData, patientFilter, 'month'),
+    [patientFilter],
+  );
+
+  // Bed turnover — aggregate by time range (average)
+  const bedTurnoverAgg = useMemo(
+    () => aggregateByTimeRange(bedTurnover, timeRange, 'month', 'avg'),
+    [timeRange],
+  );
+
+  // Revenue summary — aggregate by time range
+  const revenueAgg = useMemo(
+    () => aggregateByTimeRange(revenueSummaryData, timeRange, 'month'),
+    [timeRange],
+  );
+
+  // Department distribution pie data
+  const deptDistribution = useMemo(() => {
+    return departmentWorkload.map(d => ({ name: d.name, value: d.workload }));
+  }, []);
+
+  // Avg handling time — filter by department
+  const filteredHandlingTime = useMemo(() => {
+    return filterByDepartment(avgHandlingTime, department, 'department');
+  }, [department]);
 
   return (
     <>
@@ -68,6 +156,19 @@ export default function DashboardPage() {
       </header>
 
       <div className="p-6 space-y-6">
+        {/* ── Global Toolbar (sticky) ── */}
+        <div className="sticky top-[53px] z-20 bg-[#f8f9fc]/90 backdrop-blur-md py-3 -mx-6 px-6 border-b border-gray-100/50">
+          <AnalyticsToolbar
+            timeRange={timeRange}
+            onTimeRangeChange={setTimeRange}
+            department={department}
+            onDepartmentChange={setDepartment}
+            showDoctorRank
+            doctorRankOrder={doctorRankOrder}
+            onDoctorRankOrderChange={setDoctorRankOrder}
+          />
+        </div>
+
         {/* ── Summary Stats ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {summaryStats.map((stat, i) => (
@@ -84,54 +185,78 @@ export default function DashboardPage() {
         </div>
 
         {/* ══════════ WORKLOAD DISTRIBUTION SECTION ══════════ */}
-        <div className="border-l-4 border-purple-500 pl-4">
-          <h2 className="text-lg font-bold text-gray-800">Workload Distribution</h2>
-          <p className="text-xs text-gray-400">Staff & department workload analysis for operational insights</p>
-        </div>
+        <SectionHeader color="#7C3AED" title="Workload Distribution" subtitle="Staff & department workload analysis for operational insights" />
 
         {/* Doctor Workload + Dept Workload */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Doctor Workload Utilization */}
           <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Doctor Workload Utilization</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-800">
+                {doctorRankOrder === 'top' ? '▲ Top' : '▼ Bottom'} Performing Doctors
+              </h3>
+              <span className="text-[10px] px-2 py-1 rounded-full bg-gray-100 text-gray-500 font-medium">
+                {department === 'All' ? 'All Depts' : department} — by Utilization
+              </span>
+            </div>
             <div className="space-y-3">
-              {doctorWorkload.map((doc, i) => (
-                <motion.div key={i} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }} className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0" style={{ background: doc.utilization >= 90 ? '#EF4444' : doc.utilization >= 75 ? '#F59E0B' : '#10B981' }}>
-                    {doc.name.split(' ')[1][0]}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-semibold text-gray-700 truncate">{doc.name}</p>
-                      <span className="text-[10px] text-gray-400">{doc.activeCases}/{doc.maxCapacity} cases</span>
+              {filteredDoctors.length === 0 ? (
+                <p className="text-xs text-gray-400 text-center py-8">No doctors in selected department</p>
+              ) : (
+                filteredDoctors.map((doc, i) => (
+                  <motion.div key={doc.name} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }} className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0" style={{ background: doc.utilization >= 90 ? '#EF4444' : doc.utilization >= 75 ? '#F59E0B' : '#10B981' }}>
+                      {doc.name.split(' ')[1][0]}
                     </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
-                        <motion.div initial={{ width: 0 }} animate={{ width: `${doc.utilization}%` }} transition={{ duration: 1, delay: i * 0.1 }}
-                          className="h-full rounded-full" style={{ background: doc.utilization >= 90 ? '#EF4444' : doc.utilization >= 75 ? '#F59E0B' : '#10B981' }} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-semibold text-gray-700 truncate">{doc.name}</p>
+                        <span className="text-[10px] text-gray-400">{doc.activeCases}/{doc.maxCapacity} cases · {doc.department}</span>
                       </div>
-                      <span className={`text-[10px] font-bold ${doc.utilization >= 90 ? 'text-red-500' : doc.utilization >= 75 ? 'text-amber-500' : 'text-emerald-500'}`}>{doc.utilization}%</span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
+                          <motion.div initial={{ width: 0 }} animate={{ width: `${doc.utilization}%` }} transition={{ duration: 1, delay: i * 0.1 }}
+                            className="h-full rounded-full" style={{ background: doc.utilization >= 90 ? '#EF4444' : doc.utilization >= 75 ? '#F59E0B' : '#10B981' }} />
+                        </div>
+                        <span className={`text-[10px] font-bold ${doc.utilization >= 90 ? 'text-red-500' : doc.utilization >= 75 ? 'text-amber-500' : 'text-emerald-500'}`}>{doc.utilization}%</span>
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                ))
+              )}
             </div>
           </div>
 
-          {/* Department Workload */}
+          {/* Department Workload + Pie Distribution */}
           <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-            <h3 className="text-lg font-bold text-gray-800 mb-5">Department Workload</h3>
-            <div className="space-y-4">
-              {departmentWorkload.map((dept, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <span className="text-xs text-gray-500 w-24 truncate">{dept.name}</span>
-                  <div className="flex-1 h-3 rounded-full bg-gray-100 overflow-hidden">
-                    <motion.div initial={{ width: 0 }} animate={{ width: `${dept.workload}%` }} transition={{ duration: 1, delay: i * 0.1 }}
-                      className="h-full rounded-full" style={{ background: `linear-gradient(90deg, ${dept.color}, ${dept.color}88)` }} />
+            <h3 className="text-lg font-bold text-gray-800 mb-5">Department Workload Distribution</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Bar-style workload */}
+              <div className="space-y-3">
+                {filteredDeptWorkload.map((dept, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <span className="text-xs text-gray-500 w-24 truncate">{dept.name}</span>
+                    <div className="flex-1 h-3 rounded-full bg-gray-100 overflow-hidden">
+                      <motion.div initial={{ width: 0 }} animate={{ width: `${dept.workload}%` }} transition={{ duration: 1, delay: i * 0.1 }}
+                        className="h-full rounded-full" style={{ background: `linear-gradient(90deg, ${dept.color}, ${dept.color}88)` }} />
+                    </div>
+                    <span className={`text-xs font-bold w-12 text-right ${dept.workload >= 85 ? 'text-red-500' : 'text-gray-600'}`}>{dept.workload}%</span>
                   </div>
-                  <span className={`text-xs font-bold w-12 text-right ${dept.workload >= 85 ? 'text-red-500' : 'text-gray-600'}`}>{dept.workload}%</span>
-                </div>
-              ))}
+                ))}
+              </div>
+              {/* Pie chart */}
+              <div className="flex items-center justify-center">
+                <ResponsiveContainer width="100%" height={180}>
+                  <PieChart>
+                    <Pie data={deptDistribution} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} innerRadius={40} paddingAngle={3} strokeWidth={0}>
+                      {deptDistribution.map((_, i) => (
+                        <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(v: any) => [`${v}%`, 'Workload']} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
         </div>
@@ -161,10 +286,13 @@ export default function DashboardPage() {
         {/* Workload Over Time + Staff Utilization */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-            <h3 className="text-lg font-bold text-gray-800 mb-1">Department Workload Trends (%)</h3>
-            <p className="text-xs text-gray-400 mb-4">Monthly capacity utilization by department</p>
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-lg font-bold text-gray-800">Department Workload Trends (%)</h3>
+              <span className="text-[10px] px-2 py-1 rounded-full bg-purple-50 text-purple-600 font-medium">{timeRange}</span>
+            </div>
+            <p className="text-xs text-gray-400 mb-4">Capacity utilization by department</p>
             <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={workloadOverTime}>
+              <LineChart data={workloadOverTimeAgg}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} domain={[50, 100]} />
@@ -196,15 +324,15 @@ export default function DashboardPage() {
         </div>
 
         {/* ══════════ RESOLUTION TRENDS SECTION ══════════ */}
-        <div className="border-l-4 border-emerald-500 pl-4">
-          <h2 className="text-lg font-bold text-gray-800">Resolution Trends</h2>
-          <p className="text-xs text-gray-400">Case resolution, handling time, and operational efficiency</p>
-        </div>
+        <SectionHeader color="#10B981" title="Resolution Trends" subtitle="Case resolution, handling time, and operational efficiency" />
 
         {/* Monthly Resolution + Avg Resolution Time */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-            <h3 className="text-lg font-bold text-gray-800 mb-1">Monthly Resolution Trends</h3>
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-lg font-bold text-gray-800">Resolution Trends</h3>
+              <span className="text-[10px] px-2 py-1 rounded-full bg-emerald-50 text-emerald-600 font-medium">{timeRange}</span>
+            </div>
             <p className="text-xs text-gray-400 mb-4">Cases resolved, pending, and escalated</p>
             <div className="flex items-center gap-4 mb-3">
               {[{ label: 'Resolved', color: '#10B981' }, { label: 'Pending', color: '#F59E0B' }, { label: 'Escalated', color: '#EF4444' }].map(l => (
@@ -212,7 +340,7 @@ export default function DashboardPage() {
               ))}
             </div>
             <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={monthlyResolutionTrends} barGap={2}>
+              <BarChart data={resolutionAgg} barGap={2}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
@@ -225,10 +353,13 @@ export default function DashboardPage() {
           </div>
 
           <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-            <h3 className="text-lg font-bold text-gray-800 mb-1">Average Resolution Time</h3>
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-lg font-bold text-gray-800">Average Resolution Time</h3>
+              <span className="text-[10px] px-2 py-1 rounded-full bg-purple-50 text-purple-600 font-medium">{timeRange}</span>
+            </div>
             <p className="text-xs text-gray-400 mb-4">Hours to resolve cases (lower is better)</p>
             <ResponsiveContainer width="100%" height={260}>
-              <AreaChart data={monthlyResolutionTrends}>
+              <AreaChart data={resolutionAvgAgg}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(v: any) => `${v}h`} />
@@ -241,7 +372,10 @@ export default function DashboardPage() {
 
         {/* Avg Handling Time by Department */}
         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-          <h3 className="text-lg font-bold text-gray-800 mb-1">Average Handling Time by Department</h3>
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="text-lg font-bold text-gray-800">Average Handling Time by Department</h3>
+            <span className="text-[10px] px-2 py-1 rounded-full bg-gray-100 text-gray-500 font-medium">{department === 'All' ? 'All Departments' : department}</span>
+          </div>
           <p className="text-xs text-gray-400 mb-4">Wait → Treatment → Discharge pipeline (minutes)</p>
           <div className="flex items-center gap-4 mb-3">
             {[{ label: 'Avg Wait', color: '#EF4444' }, { label: 'Avg Treatment', color: '#7C3AED' }, { label: 'Avg Discharge', color: '#3B82F6' }].map(l => (
@@ -249,7 +383,7 @@ export default function DashboardPage() {
             ))}
           </div>
           <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={avgHandlingTime} barGap={4}>
+            <BarChart data={filteredHandlingTime} barGap={4}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
               <XAxis dataKey="department" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(v: any) => `${v}m`} />
@@ -264,10 +398,13 @@ export default function DashboardPage() {
         {/* Bed Turnover + Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-            <h3 className="text-lg font-bold text-gray-800 mb-1">Bed Turnover Rate</h3>
-            <p className="text-xs text-gray-400 mb-4">Patients per bed per month (higher = more efficient)</p>
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-lg font-bold text-gray-800">Bed Turnover Rate</h3>
+              <span className="text-[10px] px-2 py-1 rounded-full bg-purple-50 text-purple-600 font-medium">{timeRange}</span>
+            </div>
+            <p className="text-xs text-gray-400 mb-4">Patients per bed per period (higher = more efficient)</p>
             <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={bedTurnover}>
+              <LineChart data={bedTurnoverAgg}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
@@ -300,7 +437,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* ── Patient Status (existing) ── */}
+        {/* ── Patient Status (with its own time filter) ── */}
         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -311,12 +448,12 @@ export default function DashboardPage() {
                 ))}
               </div>
             </div>
-            <select value={patientFilter} onChange={(e) => setPatientFilter(e.target.value)} className="text-xs px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-600 cursor-pointer outline-none">
-              <option>Monthly</option><option>Weekly</option><option>Yearly</option>
+            <select value={patientFilter} onChange={(e) => setPatientFilter(e.target.value as TimeRange)} className="text-xs px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-600 cursor-pointer outline-none">
+              <option>Monthly</option><option>Quarterly</option><option>Yearly</option>
             </select>
           </div>
           <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={patientStatusData} barGap={2} barCategoryGap="15%">
+            <BarChart data={patientStatusAgg} barGap={2} barCategoryGap="15%">
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
               <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
@@ -346,9 +483,12 @@ export default function DashboardPage() {
             </ResponsiveContainer>
           </div>
           <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Revenue Summary</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-800">Revenue Summary</h3>
+              <span className="text-[10px] px-2 py-1 rounded-full bg-purple-50 text-purple-600 font-medium">{timeRange}</span>
+            </div>
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={revenueSummaryData} barGap={4}>
+              <BarChart data={revenueAgg} barGap={4}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(v: any) => `$${(v / 1000).toFixed(0)}k`} />
