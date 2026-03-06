@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
@@ -65,11 +66,25 @@ function SectionHeader({ color, title, subtitle }: { color: string; title: strin
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   // ── Global Controls ──
   const [timeRange, setTimeRange] = useState<TimeRange>('Monthly');
   const [department, setDepartment] = useState<Department>('All');
   const [doctorRankOrder, setDoctorRankOrder] = useState<'top' | 'bottom'>('top');
   const [patientFilter, setPatientFilter] = useState<TimeRange>('Monthly');
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setShowUserMenu(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // ── Derived Data ──
 
@@ -150,12 +165,36 @@ export default function DashboardPage() {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="1.5"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
             <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-white" />
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ background: 'linear-gradient(135deg, #FF2D55, #FF6B8A)' }}>AD</div>
-            <div className="hidden md:block">
-              <p className="text-xs font-semibold text-gray-700">Admin User</p>
-              <p className="text-[10px] text-gray-400">Hospital Admin</p>
+          <div className="relative" ref={profileRef}>
+            <div className="flex items-center gap-2 cursor-pointer select-none" onClick={() => setShowUserMenu(v => !v)}>
+              <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ background: 'linear-gradient(135deg, #FF2D55, #FF6B8A)' }}>AD</div>
+              <div className="hidden md:block">
+                <p className="text-xs font-semibold text-gray-700">Admin User</p>
+                <p className="text-[10px] text-gray-400">Hospital Admin</p>
+              </div>
+              <svg className={`w-3.5 h-3.5 text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" /></svg>
             </div>
+            {showUserMenu && (
+              <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2">
+                <div className="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-pink-50/60 to-purple-50/60">
+                  <p className="text-sm font-semibold text-gray-800">Admin User</p>
+                  <p className="text-[11px] text-gray-400">admin@hospital.com</p>
+                </div>
+                <div className="py-1">
+                  <button className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-gray-600 hover:bg-gray-50 transition-colors">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4-4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    Profile Settings
+                  </button>
+                  <button
+                    onClick={() => router.push('/login')}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-red-500 hover:bg-red-50 transition-colors"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+                    Logout
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </header>
