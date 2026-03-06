@@ -1,0 +1,131 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Patient {
+  id        String   @id
+  name      String
+  age       Int
+  gender    String
+  bloodType String
+  department String
+  doctor     String
+  status     String
+ 
+  condition  String
+}
+
+
+model Doctor {
+  id         String @id
+  name       String
+  specialty  String
+  department String
+  patients   Int
+  rating     Float
+}
+
+model Staff {
+  id          String @id
+  name        String
+  role        String
+  department  String
+  shift       String
+  status      String
+  phone       String
+  experience  String
+  patientsToday Int
+}
+
+model Appointment {
+  id         String @id
+  patient    String
+  doctor     String
+  department String
+  date       DateTime
+  time       String
+  type       String
+  status     String
+}
+
+model Payment {
+  id         String @id
+  patient    String
+  department String
+  amount     Int
+  paid       Int
+  status     String
+  date       DateTime
+  method     String
+}
+
+model Room {
+  id       String @id
+  type     String
+  floor    Int
+  beds     Int
+  occupied Int
+  status   String
+  patient  String
+  rate     Int
+}
+
+model Ambulance {
+  id          String @id
+  type        String
+  driver      String
+  status      String
+  location    String
+  lastService DateTime
+  mileage     Int
+}
+
+model DoctorWorkload {
+  id           String @id @default(cuid())
+  name         String
+  department   String
+  activeCases  Int
+  maxCapacity  Int
+  consultations Int
+  surgeries    Int
+  utilization  Int
+}
+
+model DepartmentWorkload {
+  id         String @id @default(cuid())
+  name       String
+  workload   Int
+  color      String
+}
+model SalaryRange {
+  id          String @id @default(cuid())
+  role        String
+  headcount   Int
+  minSalary   Int
+  avgSalary   Int
+  maxSalary   Int
+  rangeSpread Int
+}
+model DepartmentPerformance {
+  id          String @id @default(cuid())
+  department  String
+  patients    Int
+  satisfaction Int
+  revenue     Float
+  occupancy   Int
+  successRate Int
+  avgWait     Int
+  beds        Int
+  doctors     Int
+}
