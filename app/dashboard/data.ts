@@ -470,3 +470,46 @@ export const bedTurnover = [
   { month: 'Nov', generalWard: 3.1, icu: 1.7, private: 2.4 },
   { month: 'Dec', generalWard: 3.4, icu: 2.0, private: 2.7 },
 ];
+
+// ══════════════════════════════════════════════════
+// HEATMAP DATA — Hourly patient load by day of week
+// ══════════════════════════════════════════════════
+export const HEATMAP_HOURS = ['6AM','7AM','8AM','9AM','10AM','11AM','12PM','1PM','2PM','3PM','4PM','5PM','6PM','7PM','8PM','9PM','10PM'];
+export const HEATMAP_DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+// [day][hour] = total patients
+export const hourlyLoadByDay: number[][] = [
+  /* Mon */ [11, 31, 71, 102, 107, 92, 62, 72, 86, 78, 68, 50, 43, 32, 23, 14, 11],
+  /* Tue */ [10, 28, 65, 95, 100, 88, 58, 68, 82, 75, 65, 48, 40, 30, 21, 13, 10],
+  /* Wed */ [12, 30, 68, 98, 104, 90, 60, 70, 84, 76, 66, 52, 42, 31, 22, 14, 11],
+  /* Thu */ [14, 35, 75, 108, 112, 96, 66, 76, 90, 82, 72, 56, 46, 35, 25, 16, 12],
+  /* Fri */ [13, 33, 72, 105, 110, 94, 64, 74, 88, 80, 70, 55, 48, 38, 28, 18, 14],
+  /* Sat */ [8,  22, 48, 70, 75, 65, 45, 50, 58, 52, 44, 35, 30, 22, 16, 10, 8],
+  /* Sun */ [6,  18, 38, 55, 60, 52, 38, 42, 48, 44, 36, 28, 25, 18, 13, 8,  6],
+];
+
+// ══════════════════════════════════════════════════
+// SPARKLINE TREND DATA (small arrays for stat cards)
+// ══════════════════════════════════════════════════
+export const sparkPatients     = [820,750,890,960,1040,880,930,1100,1050,980,870,950];
+export const sparkAppointments = [310,290,380,360,420,350,400,460,440,410,370,390];
+export const sparkRevenue      = [520,480,610,580,650,540,600,720,690,640,580,710];
+export const sparkBedOccupancy = [85,83,87,88,90,86,88,92,89,87,85,88];
+export const sparkAdmitted     = [420,380,510,480,560,450,520,600,570,540,490,530];
+export const sparkICU          = [32,35,30,38,36,34,40,42,38,36,33,38];
+export const sparkDischarged   = [380,350,470,460,520,430,490,560,540,510,470,500];
+export const sparkOnDuty       = [330,325,340,345,350,338,342,355,348,340,335,342];
+export const sparkOnLeave      = [22,25,20,28,26,30,24,32,28,26,24,28];
+export const sparkOpenPos      = [12,14,10,16,15,18,13,17,15,14,12,15];
+export const sparkCompleted    = [285,260,350,330,390,320,370,430,400,380,340,360];
+export const sparkCancelled    = [25,30,30,30,30,30,30,30,40,30,30,30];
+export const sparkPayroll      = [2100,2100,2150,2150,2200,2200,2250,2250,2300,2300,2350,2400];
+export const sparkBonuses      = [85,60,90,70,95,75,80,100,85,90,110,200];
+export const sparkOvertime     = [120,110,135,125,140,115,130,150,145,135,125,160];
+export const sparkOccupancy    = [82,80,85,84,87,83,86,90,88,86,84,87];
+export const sparkResponse     = [8.2,7.8,9.1,7.5,8.8,9.5,8.0,7.2,8.6,7.9,8.3,9.0];
+export const sparkDispatches   = [3,2,4,8,15,18,12,14,20,22,16,8];
+export const sparkTickets      = [28,32,25,30,35,22,28,34,30,26,32,28];
+export const sparkResolved     = [580,540,620,600,650,580,640,690,660,620,570,610];
+export const sparkPresent      = [92,90,94,91,93,89,91,88,92,93,90,87];
+export const sparkHiring       = [24,56,32,18,28,22,40,35,30,25,42,38];

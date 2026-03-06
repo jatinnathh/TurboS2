@@ -1,12 +1,47 @@
 'use client';
+import { useState, useMemo } from 'react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion } from 'framer-motion';
-import { salaryByRole, payrollMonthly } from '../data';
+import { salaryByRole, payrollMonthly, sparkPayroll, sparkBonuses, sparkOvertime } from '../data';
+import AnalyticsToolbar from '../AnalyticsToolbar';
+import { aggregateByTimeRange, type TimeRange, type Department } from '../dataUtils';
+import Sparkline from '../Sparkline';
+import SortableTable, { type Column } from '../SortableTable';
+
+type SalaryRow = typeof salaryByRole[number];
+
+const columns: Column<SalaryRow>[] = [
+  { key: 'role', label: 'Role', sortable: true, cellClassName: 'px-3 py-3 text-xs font-semibold text-gray-700' },
+  { key: 'count', label: 'Headcount', sortable: true, cellClassName: 'px-3 py-3 text-xs text-gray-600' },
+  { key: 'min', label: 'Min Salary', sortable: true, render: (s) => <span className="text-xs text-gray-500">${s.min.toLocaleString()}</span> },
+  { key: 'avgSalary', label: 'Avg Salary', sortable: true, render: (s) => <span className="text-xs font-semibold text-purple-500">${s.avgSalary.toLocaleString()}</span> },
+  { key: 'max', label: 'Max Salary', sortable: true, render: (s) => <span className="text-xs text-gray-500">${s.max.toLocaleString()}</span> },
+  { key: 'spread', label: 'Range Spread', sortable: true, sortValue: (s) => s.max - s.min, render: (s) => (
+    <div className="flex items-center gap-2">
+      <div className="w-20 h-2 rounded-full bg-gray-100 overflow-hidden">
+        <div className="h-full rounded-full bg-purple-400" style={{ width: `${((s.max - s.min) / s.max) * 100}%` }} />
+      </div>
+      <span className="text-[10px] text-gray-500">${((s.max - s.min) / 1000).toFixed(0)}k</span>
+    </div>
+  )},
+];
 
 export default function SalariesPage() {
+  const [timeRange, setTimeRange] = useState<TimeRange>('Monthly');
+  const [department, setDepartment] = useState<Department>('All');
+
+  const payrollAgg = useMemo(() => aggregateByTimeRange(payrollMonthly, timeRange, 'month'), [timeRange]);
+
   const totalPayroll = payrollMonthly.reduce((sum, m) => sum + m.totalPayroll, 0);
   const totalBonuses = payrollMonthly.reduce((sum, m) => sum + m.bonuses, 0);
   const totalOvertime = payrollMonthly.reduce((sum, m) => sum + m.overtime, 0);
+
+  const stats = [
+    { label: 'Annual Payroll', value: `$${(totalPayroll / 1000000).toFixed(1)}M`, spark: sparkPayroll, color: '#7C3AED' },
+    { label: 'Monthly Avg', value: `$${(totalPayroll / 12 / 1000000).toFixed(2)}M`, spark: sparkPayroll, color: '#3B82F6' },
+    { label: 'Total Bonuses', value: `$${(totalBonuses / 1000).toFixed(0)}k`, spark: sparkBonuses, color: '#10B981' },
+    { label: 'Overtime Cost', value: `$${(totalOvertime / 1000000).toFixed(2)}M`, spark: sparkOvertime, color: '#F59E0B' },
+  ];
 
   return (
     <>
@@ -15,31 +50,39 @@ export default function SalariesPage() {
         <p className="text-xs text-gray-400">Payroll tracking, salary distribution, and compensation analysis</p>
       </header>
       <div className="p-6 space-y-6">
+        {/* Toolbar */}
+        <div className="sticky top-[53px] z-20 bg-[#f8f9fc]/90 backdrop-blur-md py-3 -mx-6 px-6 border-b border-gray-100/50">
+          <AnalyticsToolbar timeRange={timeRange} onTimeRangeChange={setTimeRange} department={department} onDepartmentChange={setDepartment} />
+        </div>
+
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { label: 'Annual Payroll', value: `$${(totalPayroll / 1000000).toFixed(1)}M` },
-            { label: 'Monthly Avg', value: `$${(totalPayroll / 12 / 1000000).toFixed(2)}M` },
-            { label: 'Total Bonuses', value: `$${(totalBonuses / 1000).toFixed(0)}k` },
-            { label: 'Overtime Cost', value: `$${(totalOvertime / 1000000).toFixed(2)}M` },
-          ].map((s, i) => (
+          {stats.map((s, i) => (
             <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
               className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-              <p className="text-2xl font-bold text-gray-800">{s.value}</p>
-              <p className="text-xs text-gray-400 mt-1">{s.label}</p>
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-2xl font-bold text-gray-800">{s.value}</p>
+                  <p className="text-xs text-gray-400 mt-1">{s.label}</p>
+                </div>
+                <Sparkline data={s.spark} color={s.color} />
+              </div>
             </motion.div>
           ))}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Monthly Payroll Trend</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-800">Monthly Payroll Trend</h3>
+              <span className="text-[10px] px-2 py-1 rounded-full bg-purple-50 text-purple-600 font-medium">{timeRange}</span>
+            </div>
             <div className="flex items-center gap-4 mb-3">
               {[{ label: 'Base Payroll', color: '#7C3AED' }, { label: 'Bonuses', color: '#10B981' }, { label: 'Overtime', color: '#F59E0B' }].map(l => (
                 <div key={l.label} className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: l.color }} /><span className="text-[10px] text-gray-400">{l.label}</span></div>
               ))}
             </div>
             <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={payrollMonthly}>
+              <LineChart data={payrollAgg}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(v: any) => `$${(v / 1000000).toFixed(1)}M`} />
@@ -64,30 +107,10 @@ export default function SalariesPage() {
           </div>
         </div>
 
+        {/* Salary Table — Sortable */}
         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
           <h3 className="text-lg font-bold text-gray-800 mb-4">Salary Ranges by Role</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead><tr className="border-b border-gray-100">
-                {['Role', 'Headcount', 'Min Salary', 'Avg Salary', 'Max Salary', 'Range Spread'].map(h => (
-                  <th key={h} className="px-3 py-3 text-[10px] uppercase tracking-wider font-semibold text-gray-400">{h}</th>
-                ))}</tr></thead>
-              <tbody>
-                {salaryByRole.map((s, i) => (
-                  <tr key={i} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                    <td className="px-3 py-3 text-xs font-semibold text-gray-700">{s.role}</td>
-                    <td className="px-3 py-3 text-xs text-gray-600">{s.count}</td>
-                    <td className="px-3 py-3 text-xs text-gray-500">${s.min.toLocaleString()}</td>
-                    <td className="px-3 py-3 text-xs font-semibold text-purple-500">${s.avgSalary.toLocaleString()}</td>
-                    <td className="px-3 py-3 text-xs text-gray-500">${s.max.toLocaleString()}</td>
-                    <td className="px-3 py-3">
-                      <div className="flex items-center gap-2"><div className="w-20 h-2 rounded-full bg-gray-100 overflow-hidden"><div className="h-full rounded-full bg-purple-400" style={{ width: `${((s.max - s.min) / s.max) * 100}%` }} /></div><span className="text-[10px] text-gray-500">${((s.max - s.min) / 1000).toFixed(0)}k</span></div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <SortableTable columns={columns} data={salaryByRole} rowKey={(s) => s.role} />
         </div>
       </div>
     </>

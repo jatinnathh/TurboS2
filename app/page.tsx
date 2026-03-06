@@ -57,7 +57,7 @@ export default function Home() {
             </a>
           ))}
         </div>
-        <Link href="/dashboard" className="glow-btn text-xs px-4 py-2 no-underline">
+        <Link href="/login" className="glow-btn text-xs px-4 py-2 no-underline">
           Dashboard
         </Link>
       </nav>

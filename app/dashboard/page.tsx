@@ -1,5 +1,7 @@
 'use client';
 
+import React from 'react';
+
 import { useState, useMemo } from 'react';
 import {
   BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -11,8 +13,11 @@ import {
   topDoctors, summaryStats, departmentWorkload, recentActivity,
   doctorWorkload, hourlyPatientLoad, workloadOverTime,
   monthlyResolutionTrends, avgHandlingTime, staffUtilization, bedTurnover,
+  hourlyLoadByDay, HEATMAP_HOURS, HEATMAP_DAYS,
+  sparkPatients, sparkAppointments, sparkRevenue, sparkBedOccupancy,
 } from './data';
 import AnalyticsToolbar from './AnalyticsToolbar';
+import Sparkline from './Sparkline';
 import {
   aggregateByTimeRange, filterByDepartment, rankDoctors,
   type TimeRange, type Department,
@@ -171,17 +176,26 @@ export default function DashboardPage() {
 
         {/* ── Summary Stats ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {summaryStats.map((stat, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: i * 0.1 }}
-              className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer group">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-pink-50 to-purple-50 text-pink-500 group-hover:scale-110 transition-transform">{icons[stat.icon]}</div>
-                <span className={`text-xs font-semibold px-2 py-1 rounded-full ${stat.positive ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'}`}>{stat.change}</span>
-              </div>
-              <p className="text-2xl font-bold text-gray-800">{stat.value}</p>
-              <p className="text-xs text-gray-400 mt-1">{stat.label}</p>
-            </motion.div>
-          ))}
+          {summaryStats.map((stat, i) => {
+            const sparkData = [sparkPatients, sparkAppointments, sparkRevenue, sparkBedOccupancy][i];
+            const sparkColor = ['#EC4899', '#7C3AED', '#10B981', '#3B82F6'][i];
+            return (
+              <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: i * 0.1 }}
+                className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer group">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-pink-50 to-purple-50 text-pink-500 group-hover:scale-110 transition-transform">{icons[stat.icon]}</div>
+                  <span className={`text-xs font-semibold px-2 py-1 rounded-full ${stat.positive ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'}`}>{stat.change}</span>
+                </div>
+                <div className="flex items-end justify-between">
+                  <div>
+                    <p className="text-2xl font-bold text-gray-800">{stat.value}</p>
+                    <p className="text-xs text-gray-400 mt-1">{stat.label}</p>
+                  </div>
+                  <Sparkline data={sparkData} color={sparkColor} />
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
 
         {/* ══════════ WORKLOAD DISTRIBUTION SECTION ══════════ */}
@@ -281,6 +295,61 @@ export default function DashboardPage() {
               <Area type="monotone" dataKey="admissions" name="Admissions" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.1} strokeWidth={2} />
             </AreaChart>
           </ResponsiveContainer>
+        </div>
+
+        {/* ── Heatmap: Hourly Patient Load by Day ── */}
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+          <h3 className="text-lg font-bold text-gray-800 mb-1">Patient Load Heatmap</h3>
+          <p className="text-xs text-gray-400 mb-4">Hourly patient load intensity by day of week — darker = higher load</p>
+          <div className="overflow-x-auto">
+            <div style={{ display: 'grid', gridTemplateColumns: `60px repeat(${HEATMAP_HOURS.length}, 1fr)`, gap: '2px' }}>
+              {/* Header row */}
+              <div />
+              {HEATMAP_HOURS.map(h => (
+                <div key={h} className="text-center text-[9px] text-gray-400 font-medium py-1">{h}</div>
+              ))}
+              {/* Data rows */}
+              {HEATMAP_DAYS.map((day, di) => (
+                <React.Fragment key={day}>
+                  <div className="flex items-center text-xs text-gray-500 font-medium pr-2">{day}</div>
+                  {hourlyLoadByDay[di].map((val, hi) => {
+                    const allVals = hourlyLoadByDay.flat();
+                    const minV = Math.min(...allVals);
+                    const maxV = Math.max(...allVals);
+                    const ratio = (val - minV) / (maxV - minV);
+                    // Green → Yellow → Red
+                    const r = Math.round(ratio > 0.5 ? 239 : 16 + (ratio * 2) * (239-16));
+                    const g = Math.round(ratio > 0.5 ? 68 + (1-ratio)*2*117 : 185);
+                    const b = Math.round(ratio > 0.5 ? 68 : 81 - ratio*2*13);
+                    return (
+                      <div
+                        key={`${di}-${hi}`}
+                        className="rounded-[3px] flex items-center justify-center text-[9px] font-semibold transition-transform hover:scale-110 cursor-default"
+                        style={{
+                          background: `rgba(${r},${g},${b},${0.2 + ratio * 0.7})`,
+                          color: ratio > 0.6 ? '#fff' : '#374151',
+                          minHeight: '28px',
+                        }}
+                        title={`${day} ${HEATMAP_HOURS[hi]}: ${val} patients`}
+                      >
+                        {val}
+                      </div>
+                    );
+                  })}
+                </React.Fragment>
+              ))}
+            </div>
+            {/* Legend */}
+            <div className="flex items-center justify-end gap-2 mt-3">
+              <span className="text-[9px] text-gray-400">Low</span>
+              <div className="flex gap-0.5">
+                {[0, 0.25, 0.5, 0.75, 1].map((r, i) => (
+                  <div key={i} className="w-5 h-3 rounded-sm" style={{ background: `rgba(${r > 0.5 ? 239 : 16 + r*2*223},${r > 0.5 ? 68 + (1-r)*2*117 : 185},${r > 0.5 ? 68 : 81-r*2*13},${0.3 + r*0.6})` }} />
+                ))}
+              </div>
+              <span className="text-[9px] text-gray-400">High</span>
+            </div>
+          </div>
         </div>
 
         {/* Workload Over Time + Staff Utilization */}

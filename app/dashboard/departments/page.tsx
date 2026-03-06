@@ -50,31 +50,33 @@ export default function DepartmentsPage() {
       </header>
       <div className="p-6 space-y-6">
 
-        {/* ── Controls ── */}
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Department Filter */}
-          <div className="flex items-center bg-gray-100 rounded-xl p-1 gap-0.5 flex-wrap">
-            {DEPARTMENTS.map(dept => {
-              const isActive = dept === selectedDept;
-              return (
-                <button
-                  key={dept}
-                  onClick={() => setSelectedDept(dept)}
-                  className="relative z-10 px-3 py-1.5 text-[11px] font-semibold rounded-lg transition-colors duration-200"
-                  style={{ color: isActive ? '#fff' : '#6b7280' }}
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="deptTabIndicator"
-                      className="absolute inset-0 rounded-lg"
-                      style={{ background: 'linear-gradient(135deg, #7C3AED, #EC4899)' }}
-                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                    />
-                  )}
-                  <span className="relative z-10">{dept === 'All' ? 'All' : dept}</span>
-                </button>
-              );
-            })}
+        {/* ── Controls (Sticky) ── */}
+        <div className="sticky top-[53px] z-20 bg-[#f8f9fc]/90 backdrop-blur-md py-3 -mx-6 px-6 border-b border-gray-100/50">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Department Filter */}
+            <div className="flex items-center bg-gray-100 rounded-xl p-1 gap-0.5 flex-wrap">
+              {DEPARTMENTS.map(dept => {
+                const isActive = dept === selectedDept;
+                return (
+                  <button
+                    key={dept}
+                    onClick={() => setSelectedDept(dept)}
+                    className="relative z-10 px-3 py-1.5 text-[11px] font-semibold rounded-lg transition-colors duration-200"
+                    style={{ color: isActive ? '#fff' : '#6b7280' }}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="deptTabIndicator"
+                        className="absolute inset-0 rounded-lg"
+                        style={{ background: 'linear-gradient(135deg, #7C3AED, #EC4899)' }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                      />
+                    )}
+                    <span className="relative z-10">{dept === 'All' ? 'All' : dept}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 

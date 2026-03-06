@@ -1,13 +1,48 @@
 'use client';
+import { useState, useMemo } from 'react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion } from 'framer-motion';
-import { ambulanceFleet, responseTimeData, dispatchByHour } from '../data';
+import { ambulanceFleet, responseTimeData, dispatchByHour, sparkResponse, sparkDispatches } from '../data';
+import AnalyticsToolbar from '../AnalyticsToolbar';
+import { aggregateByTimeRange, type TimeRange, type Department } from '../dataUtils';
+import Sparkline from '../Sparkline';
+import SortableTable, { type Column } from '../SortableTable';
 
 const statusColors: Record<string, string> = { Available: '#10B981', 'On Route': '#3B82F6', 'At Scene': '#F59E0B', Maintenance: '#EF4444' };
 
+type Ambulance = typeof ambulanceFleet[number];
+
+const columns: Column<Ambulance>[] = [
+  { key: 'id', label: 'Unit', sortable: true, cellClassName: 'px-3 py-3 text-xs font-mono text-gray-500' },
+  { key: 'type', label: 'Type', sortable: true, cellClassName: 'px-3 py-3 text-xs font-semibold text-gray-700' },
+  { key: 'driver', label: 'Driver', sortable: true, cellClassName: 'px-3 py-3 text-xs text-gray-500' },
+  { key: 'status', label: 'Status', sortable: true, render: (a) => <span className="text-[10px] px-2 py-1 rounded-full font-semibold" style={{ background: (statusColors[a.status] || '#999') + '15', color: statusColors[a.status] || '#999' }}>{a.status}</span> },
+  { key: 'location', label: 'Location', sortable: true, cellClassName: 'px-3 py-3 text-xs text-gray-500' },
+  { key: 'lastService', label: 'Last Service', sortable: true, cellClassName: 'px-3 py-3 text-xs text-gray-500' },
+  { key: 'mileage', label: 'Mileage', sortable: true, render: (a) => <span className="text-xs text-gray-600">{a.mileage.toLocaleString()} mi</span> },
+];
+
 export default function AmbulancePage() {
+  const [timeRange, setTimeRange] = useState<TimeRange>('Monthly');
+  const [department, setDepartment] = useState<Department>('All');
+
+  const responseAgg = useMemo(() => aggregateByTimeRange(responseTimeData, timeRange, 'month', 'avg'), [timeRange]);
+
   const active = ambulanceFleet.filter(a => a.status === 'On Route' || a.status === 'At Scene').length;
   const available = ambulanceFleet.filter(a => a.status === 'Available').length;
+  // Computed avg response
+  const avgResponse = (responseTimeData.reduce((sum, d) => sum + d.avgResponse, 0) / responseTimeData.length).toFixed(1);
+
+  const sparkFleet = [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6];
+  const sparkActive = [2, 3, 2, 4, 3, 2, 3, 4, 3, 2, 3, 2];
+  const sparkAvailable = [2, 1, 2, 1, 2, 3, 2, 1, 2, 3, 2, 2];
+
+  const stats = [
+    { label: 'Total Fleet', value: ambulanceFleet.length.toString(), spark: sparkFleet, color: '#7C3AED' },
+    { label: 'Active Now', value: active.toString(), spark: sparkActive, color: '#3B82F6' },
+    { label: 'Available', value: available.toString(), spark: sparkAvailable, color: '#10B981' },
+    { label: 'Avg Response', value: `${avgResponse} min`, spark: sparkResponse, color: '#F59E0B' },
+  ];
 
   return (
     <>
@@ -16,26 +51,34 @@ export default function AmbulancePage() {
         <p className="text-xs text-gray-400">Fleet status, response times, and dispatch analytics</p>
       </header>
       <div className="p-6 space-y-6">
+        {/* Toolbar */}
+        <div className="sticky top-[53px] z-20 bg-[#f8f9fc]/90 backdrop-blur-md py-3 -mx-6 px-6 border-b border-gray-100/50">
+          <AnalyticsToolbar timeRange={timeRange} onTimeRangeChange={setTimeRange} department={department} onDepartmentChange={setDepartment} />
+        </div>
+
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { label: 'Total Fleet', value: ambulanceFleet.length.toString() },
-            { label: 'Active Now', value: active.toString() },
-            { label: 'Available', value: available.toString() },
-            { label: 'Avg Response', value: '8.3 min' },
-          ].map((s, i) => (
+          {stats.map((s, i) => (
             <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
               className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-              <p className="text-2xl font-bold text-gray-800">{s.value}</p>
-              <p className="text-xs text-gray-400 mt-1">{s.label}</p>
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-2xl font-bold text-gray-800">{s.value}</p>
+                  <p className="text-xs text-gray-400 mt-1">{s.label}</p>
+                </div>
+                <Sparkline data={s.spark} color={s.color} />
+              </div>
             </motion.div>
           ))}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Response Time vs Target (min)</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-800">Response Time vs Target (min)</h3>
+              <span className="text-[10px] px-2 py-1 rounded-full bg-purple-50 text-purple-600 font-medium">{timeRange}</span>
+            </div>
             <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={responseTimeData}>
+              <LineChart data={responseAgg}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} domain={[5, 12]} />
@@ -59,29 +102,10 @@ export default function AmbulancePage() {
           </div>
         </div>
 
+        {/* Fleet Table — Sortable */}
         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
           <h3 className="text-lg font-bold text-gray-800 mb-4">Fleet Status</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead><tr className="border-b border-gray-100">
-                {['Unit', 'Type', 'Driver', 'Status', 'Location', 'Last Service', 'Mileage'].map(h => (
-                  <th key={h} className="px-3 py-3 text-[10px] uppercase tracking-wider font-semibold text-gray-400">{h}</th>
-                ))}</tr></thead>
-              <tbody>
-                {ambulanceFleet.map(a => (
-                  <tr key={a.id} className="border-b border-gray-50 hover:bg-gray-50/50 cursor-pointer transition-colors">
-                    <td className="px-3 py-3 text-xs font-mono text-gray-500">{a.id}</td>
-                    <td className="px-3 py-3 text-xs font-semibold text-gray-700">{a.type}</td>
-                    <td className="px-3 py-3 text-xs text-gray-500">{a.driver}</td>
-                    <td className="px-3 py-3"><span className="text-[10px] px-2 py-1 rounded-full font-semibold" style={{ background: (statusColors[a.status] || '#999') + '15', color: statusColors[a.status] || '#999' }}>{a.status}</span></td>
-                    <td className="px-3 py-3 text-xs text-gray-500">{a.location}</td>
-                    <td className="px-3 py-3 text-xs text-gray-500">{a.lastService}</td>
-                    <td className="px-3 py-3 text-xs text-gray-600">{a.mileage.toLocaleString()} mi</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <SortableTable columns={columns} data={ambulanceFleet} rowKey={(a) => a.id} />
         </div>
       </div>
     </>
